@@ -1,11 +1,12 @@
-SOURCE=${(%):-%N}
-while [ -h "$SOURCE" ]; do
-  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-  SOURCE="$(readlink "$SOURCE")"
-  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-PLUGIN_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+#!/usr/bin/env zsh
 
-source $PLUGIN_DIR/luaver
-fpath=($PLUGIN_DIR/completions $fpath)
+# According to the Zsh Plugin Standard:
+# http://zdharma.org/Zsh-100-Commits-Club/Zsh-Plugin-Standard.html
+0="${ZERO:-${${0:#$ZSH_ARGZERO}:-${(%):-%N}}}"
+0="${${(M)0:#/*}:-$PWD/$0}"
+# Then ${0:h} to get plugin’s directory
+export LUAVER_PLUGIN_DIR="${0:A:h}"
 
+source $LUAVER_PLUGIN_DIR/luaver
+
+fpath+=( $LUAVER_PLUGIN_DIR/completions )

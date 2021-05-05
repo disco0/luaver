@@ -1,53 +1,308 @@
 #compdef luaver
-#autoload
 
-_luaver_download()
+#region Cache
+
+# # Cache policy guard block for more expensive completions
+# local cache_policy
+# zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
+# if [[ -z "$cache_policy" ]];
+# then
+#     zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+# fi
+
+function _luaver::cache::policy()
 {
-    if curl -V >/dev/null 2>&1
+    local -a oldp
+    # 24 hour cache
+    oldp=( "$1"(Nmh+24) )
+    (( $#oldp ))
+}
+
+#endregion Cache
+
+#section Utils
+
+function _luaver_download()
+{
+    if (( $+commands[curl] ))
     then
-        curl -fsSL "$1"
+        command curl -fsSL "$1"
     else
-        wget -qO- "$1"
+        command wget -qO- "$1"
     fi
 }
 
-_luaver_install()
+###
+ # Normalize internal command output instead of sed
+ # @TODO:
+ #   Add a `plain` flag (or similar) for all luaver subcommands used by
+ # completion functions so this is unnecessary
+ ##
+function __luaver::unctrl()
 {
+    builtin emulate zsh -L -o EXTENDEDGLOB
+
+    while { read line } {
+        builtin print -l -- \
+            ${line//[[:cntrl:]]##[\[]#([\(][[:alpha:]]#|\[#<->#m)#}
+    }
+}
+
+function __luaver::flush-comp-cache()
+{
+    if (( $+ZSH_CACHE_DIR )) && [[ -d $ZSH_CACHE_DIR ]]
+    then
+        # Possibly hitting other completion functions' caches?
+        rm ${(@)^@} $ZSH_CACHE_DIR/lua*
+    fi
+}
+
+function __luaver::parse_ver_list()
+{
+    __luaver::unctrl | while { read line } {
+        local filtered="${${(M)line##<->*}//[^[:digit:].]/}"
+        [[ -n "${filtered}" ]] && builtin print -r -- $filtered
+    }
+}
+
+function __luaver::luarocks-versions()
+{
+
+}
+
+#section Lua Version Enumeration
+
+function _luaver_lua_versions()
+{
+
+}
+
+function _luaver_install()
+{
+    local cache_policy
+    zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
+    if [[ -z "$cache_policy" ]];
+    then
+        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+    fi
+
     local -a lua_versions
     if _cache_invalid lua_versions || ! _retrieve_cache lua_versions
     then
-        lua_versions=($(_luaver_download 'https://www.lua.org/ftp/' | sed -n -e 's/.*lua\-\(5\.[0-9]\.[0-9]\)\.tar\.gz.*/\1/gp'))
+        # Original
+        # lua_versions=($(_luaver_download 'https://www.lua.org/ftp/' | sed -n -e 's/.*lua\-\(5\.[0-9]\.[0-9]\)\.tar\.gz.*/\1/gp'))
+
+        builtin emulate zsh -L -o EXTENDED_GLOB
+
+        local version_url='https://www.lua.org/ftp/'
+
+        lua_versions=( ${${(M)${(f@)^"$(
+            _luaver_download "${version_url}" )"}##*lua-5([.][[:digit:]]#)(([.][[:digit:]]##)|)}##*lua-}
+        )
 
         _store_cache lua_versions lua_versions
     fi
+
     compadd $lua_versions
 }
+# @TODO: Properly do caching now that I'm actually working on the right file
+#region Luarocks - Installed Versions Completion
 
-_luaver_install-luajit()
+function __luaver::luarocks::list-installed()
 {
-    local -a luajit_versions
-    if _cache_invalid luajit_versions || ! _retrieve_cache luajit_versions
+    local cache_policy
+    zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
+    if [[ -z "$cache_policy" ]];
     then
-        luajit_versions=($(_luaver_download "http://luajit.org/download.html" | awk '/MD5 Checksums/,/<\/pre/ { print }' | sed -n -e 's/.*LuaJIT-\(.*\)\.tar\.gz.*/\1/gp'))
-
-        _store_cache luajit_versions luajit_versions
+        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
     fi
-    compadd $luajit_versions
+
+    local -a _luarocks_installed_versions=()
+    if  ! _retrieve_cache _luarocks_installed_versions ||
+        [[ $+_luarocks_installed_versions -eq 0 ]]     ||
+        _cache_invalid _luarocks_installed_versions
+    then
+        local -a version_pairs=( ${(@)${(@)${(f@)^"$( luaver list-luarocks | __luaver::unctrl)"}[2,-1]}/lua/} )
+        # Replace above param name with final target if it works
+    fi
+    _luarocks_installed_versions=( ${(@)${(@)${(f@)^"$( luaver list-luarocks | __luaver::unctrl)"}[2,-1]}/lua/} )
+    _describe -t commands "luarocks versions" _luarocks_installed_versions && (( ret = 0 ))
 }
 
-_luaver_install-luarocks()
+#endregion Luarocks - Installed Versions Completion
+
+# @TODO: Properly do caching now that I'm actually working on the right file
+#region Luajit - Installed Versions Completion
+
+# typeset -ga _luarocks_installed_versions
+function __luaver::luajit::list-installed()
 {
-    local -a luarocks_versions
-    if _cache_invalid luarocks_versions || ! _retrieve_cache luarocks_versions
+    local cache_policy
+    zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
+    if [[ -z "$cache_policy" ]];
     then
-        luarocks_versions=($(_luaver_download 'http://luarocks.github.io/luarocks/releases/releases.json' | sed -n -e 's/.*luarocks-\(.*\)\.tar\.gz.*/\1/gp'))
+        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+    fi
+
+    local -a _luajit_installed_versions=()
+    if  ! _retrieve_cache _luajit_installed_versions ||
+        [[ $+_luajit_installed_versions -eq 0 ]]     ||
+        _cache_invalid _luajit_installed_versions
+    then
+        local -a version_pairs=( ${(@)${(f@)^"$( luaver list-luajit | __luaver::unctrl)"}[2,-1]} )
+        # Replace above param name with final target if it works
+    fi
+    _luajit_installed_versions=( ${(@)${(f@)^"$( luaver list-luajit | __luaver::unctrl)"}[2,-1]} )
+    _describe -t commands "luajit versions" _luajit_installed_versions && (( ret = 0 ))
+}
+
+#endregion Luajit - Installed Versions Completion
+
+#region Extended install-luajit Completion
+
+function __luaver_install-luajit()
+{
+    local cache_policy
+    zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
+    if [[ -z "$cache_policy" ]];
+    then
+        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+    fi
+
+    (( ret = 1 ))
+
+    local -a _verbose_luajit_versions=()
+
+    # if _cache_invalid _verbose_luajit_versions || ! _retrieve_cache _verbose_luajit_versions
+    if  ! _retrieve_cache _verbose_luajit_versions ||
+        [[ $+_verbose_luajit_versions -eq 0 ]]     ||
+        _cache_invalid _verbose_luajit_versions
+    then
+        builtin emulate zsh -L -o EXTENDEDGLOB;
+
+        local version_url="http://luajit.org/download.html"
+
+        # Match each version's download filename
+        local -a luajit_version_files=(
+            ${(M@z)${(@)^${(f@)^${${"$(
+                _luaver_download $version_url
+            )"##*SHA256 Checksums<\/h2>(\n|)}#*>}%%</pre>*}:#}%% *}
+        )
+
+        # Create download urls for each version
+        local download_url_prefix="http://luajit.org/download"
+        local -a luajit_version_urls=( "${download_url_prefix}/"${(@)^luajit_version_files} )
+
+        # Extract versions from filenames
+        local -a luajit_versions=( ${${luajit_version_files##LuaJIT-}%%.(tar.gz|zip)} )
+
+        # Create associative array of version/url key value pairs
+        local -A luajit_version_url_assoc=()
+        : ${(AA)luajit_version_url_assoc::=${luajit_versions:^^luajit_version_urls}}
+
+        # Expand version/url key value pairs into array of colon separated keyvalues
+        # Expansion alchemy from https://reddit.com//comments/ijk0j5//g3vqpns/
+        local -a _describe=()
+        : ${(A)_describe::=${(As.,.o)${(kj:,:)luajit_version_url_assoc/(#m)*/${MATCH}:${luajit_version_url_assoc[$MATCH]//:/\\\:}}}}
+
+        _store_cache _verbose_luajit_versions _describe
+        : ${(A)${_verbose_luajit_versions}::=${(@A)_describe}}
+    fi
+
+    _describe -t commands "luajit versions" _describe && (( ret = 0 ))
+
+    return $ret
+}
+
+#endregion Extended install-luajit Completion
+
+#region Original(ish) install-luajit Completion
+
+function _luaver_install-luajit()
+{
+    local cache_policy
+    zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
+    if [[ -z "$cache_policy" ]];
+    then
+        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+    fi
+
+    # local -a luajit_versions
+    # if _cache_invalid luajit_versions || ! _retrieve_cache luajit_versions
+    local -a luajit_versions
+    if  ! _retrieve_cache luajit_versions ||
+        _cache_invalid luajit_versions    ||
+        [[ $+luajit_versions -eq 0 ]]
+    then
+        # Original
+        # luajit_versions=($(_luaver_download "http://luajit.org/download.html" | awk '/MD5 Checksums/,/<\/pre/ { print }' | sed -n -e 's/.*LuaJIT-\(.*\)\.tar\.gz.*/\1/gp'))
+
+        local version_url="http://luajit.org/download.html"
+
+        # Match file names (intend to use this interim form to generate the full urls for verbose
+        # completion results, otherwise this could be one step)
+        local -a version_files=(
+            ${(M@z)${(@)^${(f@)^${${"$(
+                _luaver_download $version_url
+            )"##*SHA256 Checksums<\/h2>(\n|)}#*>}%%</pre>*}:#}%% *}
+        )
+
+        # Extract versions from filenames
+        local -a luajit_versions=(
+            ${${version_files##LuaJIT-}%%.(tar.gz|zip)}
+        )
+
+        #region Extended completion results
+        local download_url_prefix="http://luajit.org/download"
+        local -a download_urls=( "${download_url_prefix}"${(@)^version_files} )
+
+        _describe -t commands "luajit versions"
+        #endregion Extended completion results
+
+        #region Basic completion results
+        _store_cache luajit_versions luajit_versions
+        #endregion Basic completion results
+    fi
+
+    #region Basic completion results
+    compadd $luajit_versions
+    #endregion Basic completion results
+}
+
+#endregion Original(ish) install-luajit Completion
+
+function _luaver_install-luarocks()
+{
+    local cache_policy
+    zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
+    if [[ -z "$cache_policy" ]];
+    then
+        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+    fi
+
+    local -a luarocks_versions
+    # if _cache_invalid luarocks_versions || ! _retrieve_cache luarocks_versions
+    if  ! _retrieve_cache luarocks_versions ||
+        _cache_invalid luarocks_versions    ||
+        [[ $+luarocks_versions -eq 0 ]]
+    then
+        # Original
+        # luarocks_versions=($(_luaver_download  | sed -n -e 's/.*luarocks-\(.*\)\.tar\.gz.*/\1/gp'))
+
+        builtin emulate zsh -L -o EXTENDED_GLOB
+
+        local version_url='http://luarocks.github.io/luarocks/releases/releases.json'
+        luarocks_versions=( ${(MQ)${(M@)${(f@)^"$(
+            _luaver_download "${version_url}" )"}:#\"[[:digit:]][[:digit:].]##*}##\"*\"}
+        )
 
         _store_cache luarocks_versions luarocks_versions
     fi
     compadd $luarocks_versions
 }
 
-_luaver()
+
+function __luaver()
 {
     local -a _1st_arguments
     _1st_arguments=(
@@ -77,7 +332,8 @@ _luaver()
     local state
     _arguments '*:: :->command'
 
-    if (( CURRENT == 1 )); then
+    if (( CURRENT == 1 ))
+    then
         _describe -t commands "luaver command" _1st_arguments
         return
     fi
@@ -88,21 +344,22 @@ _luaver()
             _luaver_install
             ;;
         install-luajit )
-            _luaver_install-luajit
+            __luaver_install-luajit
             ;;
         install-luarocks )
             _luaver_install-luarocks
             ;;
         use | set-default | uninstall)
-            compadd $(luaver list | grep '[0-9].[0-9].[0-9]' | tr - ' ') # UGLY HACK
+            compadd $(luaver list | __luaver::parse_ver_list)
             ;;
         use-luajit | set-default-luajit | uninstall-luajit )
-            compadd $(luaver list-luajit | grep '[0-9].[0-9].[0-9]' | tr - ' ') # UGLY HACK
+            __luaver::luajit::list-installed
             ;;
         use-luarocks | set-default-luarocks | uninstall-luarocks)
-            compadd $(luaver list-luarocks | grep '[0-9].[0-9].[0-9]' | tr - ' ') # UGLY HACK
+            __luaver::luarocks::list-installed
             ;;
     esac
+    # dbglog "Completion ended."
 }
 
-_luaver ${@} # Call the completer
+__luaver ${@} # Call the completer

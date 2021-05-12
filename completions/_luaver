@@ -7,7 +7,7 @@
 # zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
 # if [[ -z "$cache_policy" ]];
 # then
-#     zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+#     zstyle ":completion:${curcontext}:" cache-policy _luaver::cache::policy
 # fi
 
 function _luaver::cache::policy()
@@ -43,8 +43,7 @@ function __luaver::unctrl()
     builtin emulate zsh -L -o EXTENDEDGLOB
 
     while { read line } {
-        builtin print -l -- \
-            ${line//[[:cntrl:]]##[\[]#([\(][[:alpha:]]#|\[#<->#m)#}
+        builtin print -l -- ${line//[[:cntrl:]]##[\[]#([\(][[:alpha:]]#|\[#<->#m)#}
     }
 }
 
@@ -83,7 +82,7 @@ function _luaver_install()
     zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
     if [[ -z "$cache_policy" ]];
     then
-        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+        zstyle ":completion:${curcontext}:" cache-policy _luaver::cache::policy
     fi
 
     local -a lua_versions
@@ -114,7 +113,7 @@ function __luaver::luarocks::list-installed()
     zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
     if [[ -z "$cache_policy" ]];
     then
-        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+        zstyle ":completion:${curcontext}:" cache-policy _luaver::cache::policy
     fi
 
     local -a _luarocks_installed_versions=()
@@ -141,7 +140,7 @@ function __luaver::luajit::list-installed()
     zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
     if [[ -z "$cache_policy" ]];
     then
-        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+        zstyle ":completion:${curcontext}:" cache-policy _luaver::cache::policy
     fi
 
     local -a _luajit_installed_versions=()
@@ -166,7 +165,7 @@ function __luaver_install-luajit()
     zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
     if [[ -z "$cache_policy" ]];
     then
-        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+        zstyle ":completion:${curcontext}:" cache-policy _luaver::cache::policy
     fi
 
     (( ret = 1 ))
@@ -224,7 +223,7 @@ function _luaver_install-luajit()
     zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
     if [[ -z "$cache_policy" ]];
     then
-        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+        zstyle ":completion:${curcontext}:" cache-policy _luaver::cache::policy
     fi
 
     # local -a luajit_versions
@@ -277,7 +276,7 @@ function _luaver_install-luarocks()
     zstyle -s ":completion:${curcontext}:" cache-policy cache_policy
     if [[ -z "$cache_policy" ]];
     then
-        zstyle ":completion:${curcontext}:" cache-policy _luaver_caching_policy
+        zstyle ":completion:${curcontext}:" cache-policy _luaver::cache::policy
     fi
 
     local -a luarocks_versions

@@ -3,3 +3,7 @@
 /luajit/
 /luarocks/
 /DEFAULT*
+._zinit
+
+# Compiled zsh script
+*.zwc

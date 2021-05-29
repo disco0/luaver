@@ -7,6 +7,9 @@
 # Then ${0:h} to get plugin’s directory
 export LUAVER_PLUGIN_DIR="${0:A:h}"
 
-source $LUAVER_PLUGIN_DIR/luaver
+# Modified zsh version of the original script
+local luaver_zsh_scriptname='luaver'
+
+source $LUAVER_PLUGIN_DIR/${luaver_zsh_scriptname}
 
 fpath+=( $LUAVER_PLUGIN_DIR/completions )

@@ -47,8 +47,10 @@ done
 
 print_bold "Installing luaver..."
 
+local repo_username="disco0" # DhavalKapil
+
 ## Download script
-URL="https://raw.githubusercontent.com/DhavalKapil/luaver/${REVISION}"
+URL="https://raw.githubusercontent.com/${repo_username}/luaver/${REVISION}"
 
 mkdir -p "${LUAVER_DIR}/completions"
 

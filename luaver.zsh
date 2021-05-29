@@ -5,11 +5,9 @@
 # Developed by Dhaval Kapil <me@dhavalkapil.com>
 # With a lot of help from Kaito Udagawa
 #
-# Modified zsh version by @disco0, for zsh compatibility/plugin manager integration
-#
 # MIT license http://www.opensource.org/licenses/mit-license.php
 
-__luaver_VERSION="1.2.0z"
+__luaver_VERSION="1.1.0"
 
 # Directories and files to be used
 
@@ -25,7 +23,7 @@ __luaver_LUAROCKS_DEFAULT_FILE="${__luaver_LUAVER_DIR}/DEFAULT_LUAROCKS"   # Lua
 __luaver_present_dir=""
 
 # Verbose level
-(( __luaver_verbose = 0 ))
+__luaver_verbose=0
 
 ###############################################################################
 # Helper functions
@@ -34,7 +32,7 @@ __luaver_present_dir=""
 function __luaver_error()
 {
     printf "%b\n" "${1}" 1>&2
-    __luaver_exec_command cd -q "${__luaver_present_dir}"
+    __luaver_exec_command cd "${__luaver_present_dir}"
     kill -INT $$
 }
 
@@ -118,7 +116,7 @@ function __luaver_init()
 
     __luaver_verbose=1
 
-    __luaver_exec_command cd -q "${__luaver_present_dir}"
+    __luaver_exec_command cd "${__luaver_present_dir}"
 }
 
 # Checking whether a particular tool exists or not
@@ -259,7 +257,7 @@ function __luaver_uninstall()
 
     __luaver_print "Uninstalling ${package_name}"
 
-    __luaver_exec_command cd -q "${package_path}"
+    __luaver_exec_command cd "${package_path}"
     if [ ! -e "${package_dir}" ]
     then
         __luaver_error "${package_name} is not installed"
@@ -419,7 +417,7 @@ function __luaver_install_lua()
 
     __luaver_print "Installing ${lua_dir_name}"
 
-    __luaver_exec_command cd -q "${__luaver_SRC_DIR}"
+    __luaver_exec_command cd "${__luaver_SRC_DIR}"
 
     __luaver_download_and_unpack "${lua_dir_name}" "${archive_name}" "${url}"
 
@@ -433,7 +431,7 @@ function __luaver_install_lua()
         __luaver_print "Platform detected: ${platform}"
     fi
 
-    __luaver_exec_command cd -q "${lua_dir_name}"
+    __luaver_exec_command cd "${lua_dir_name}"
 
     __luaver_print "Compiling ${lua_dir_name}"
 
@@ -456,7 +454,7 @@ function __luaver_use_lua()
     __luaver_print "Switching to ${lua_name}"
 
     # Checking if this version exists
-    __luaver_exec_command cd -q "${__luaver_LUA_DIR}"
+    __luaver_exec_command cd "${__luaver_LUA_DIR}"
 
     if [ ! -e "${version}" ]
     then
@@ -550,11 +548,11 @@ function __luaver_install_luajit()
 
     __luaver_print "Installing ${luajit_dir_name}"
 
-    __luaver_exec_command cd -q "${__luaver_SRC_DIR}"
+    __luaver_exec_command cd "${__luaver_SRC_DIR}"
 
     __luaver_download_and_unpack "${luajit_dir_name}" "${archive_name}" "${url}"
 
-    __luaver_exec_command cd -q "${luajit_dir_name}"
+    __luaver_exec_command cd "${luajit_dir_name}"
 
     __luaver_print "Compiling ${luajit_dir_name}"
 
@@ -562,7 +560,7 @@ function __luaver_install_luajit()
     __luaver_exec_command make install PREFIX="${__luaver_LUAJIT_DIR}/${version}"
 
     # Beta versions do not produce /bin/luajit. Making symlink in such cases.
-    __luaver_exec_command cd -q "${__luaver_LUAJIT_DIR}/${version}/bin"
+    __luaver_exec_command cd "${__luaver_LUAJIT_DIR}/${version}/bin"
     if [ ! -f "luajit" ]
     then
         __luaver_exec_command ln -sf "luajit-${version}" "${__luaver_LUAJIT_DIR}/${version}/bin/luajit"
@@ -585,7 +583,7 @@ function __luaver_use_luajit()
     __luaver_print "Switching to ${luajit_name}"
 
     # Checking if this version exists
-    __luaver_exec_command cd -q "${__luaver_LUAJIT_DIR}"
+    __luaver_exec_command cd "${__luaver_LUAJIT_DIR}"
 
     if [ ! -e "${version}" ]
     then
@@ -672,11 +670,11 @@ function __luaver_install_luarocks()
 
     __luaver_print "Installing ${luarocks_dir_name} for lua version ${lua_version}"
 
-    __luaver_exec_command cd -q "${__luaver_SRC_DIR}"
+    __luaver_exec_command cd "${__luaver_SRC_DIR}"
 
     __luaver_download_and_unpack "${luarocks_dir_name}" "${archive_name}" "${url}"
 
-    __luaver_exec_command cd -q "${luarocks_dir_name}"
+    __luaver_exec_command cd "${luarocks_dir_name}"
 
     __luaver_print "Compiling ${luarocks_dir_name}"
 
@@ -715,7 +713,7 @@ function __luaver_use_luarocks()
     __luaver_print "Switching to ${luarocks_name} with lua version: ${lua_version}"
 
     # Checking if this version exists
-    __luaver_exec_command cd -q "${__luaver_LUAROCKS_DIR}"
+    __luaver_exec_command cd "${__luaver_LUAROCKS_DIR}"
 
     if [ ! -e "${version}_${lua_version}" ]
     then
@@ -772,12 +770,6 @@ function __luaver_uninstall_luarocks()
     fi
 }
 
-# @NOTE: Just the snippet of downloading the release data and formatting into a single object with all version keys
-function __luaver_get_luarocks_versions()
-{
-    curl http://luarocks.github.io/luarocks/releases/releases.json | jq 'map({key: keys[0], value: .[keys[0]]}) | from_entries'
-}
-
 function __luaver_list_luarocks()
 {
     if [ "x$1" = "x-r" ]
@@ -823,7 +815,7 @@ function __luaver_version()
 # Init environment
 __luaver_init
 
-luaver()
+function luaver()
 {
     __luaver_present_dir=$(pwd)
 
@@ -862,7 +854,7 @@ luaver()
         * )                         __luaver_usage;;
     esac
 
-    __luaver_exec_command cd -q "${__luaver_present_dir}"
+    __luaver_exec_command cd "${__luaver_present_dir}"
 }
 
 [ -n "$1" ] && luaver "$@"
